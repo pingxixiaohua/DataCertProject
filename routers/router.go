@@ -16,5 +16,11 @@ func init() {
     //访问直接登陆的页面访问接口
     beego.Router("/login.html",&controllers.LoginController{})
 	//用户登录请求接口
-	beego.Router("user_login",&controllers.LoginController{})
+	beego.Router("/user_login",&controllers.LoginController{})
+	//上传文件接口
+	beego.Router("/upload",&controllers.UploadFileController{})
+	//认证数据列表页面，跳回新增取证
+	beego.Router("/upload_file.html",&controllers.UploadFileController{})
+	//查看认证证书页面cert_detail.html
+	//beego.Router("/cert_detail.html",&controllers.)
 }

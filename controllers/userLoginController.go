@@ -29,6 +29,7 @@ func (l *LoginController) Post() {
 	u, err := user.QueryUser()
 	if err != nil {
 		 l.Ctx.WriteString("用户登陆失败，请重试")
+		//l.TplName = "error"
 		return
 	}
 	//登陆成功，跳转home.html
