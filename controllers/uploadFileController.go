@@ -23,6 +23,7 @@ func (u *UploadFileController) Get()  {
 	u.TplName = "home.html"
 }
 
+
 func (u *UploadFileController) Post() {
 	//1.获取客户端上传的文件以及其他form表单的信息
 	fileTitle := u.Ctx.Request.PostFormValue("upload_title")
@@ -73,12 +74,13 @@ func (u *UploadFileController) Post() {
 	fmt.Println(savaFile)
 	hash, err := util.MD5HashReader(hashFile)
 
+	t := time.Now().Unix()
 	//3、将上传的记录保存到数据库中
 	record := models.UploadRecord{}
 	record.FileName = header.Filename
 	record.FileSize = header.Size
 	record.FileTitle = fileTitle
-	record.CertTime = time.Now().Unix()
+	record.CertTime = t
 	record.FileCert = hash
 	record.Phone = phone //手机
 	_, err = record.SaveRecord()
@@ -88,11 +90,37 @@ func (u *UploadFileController) Post() {
 		return
 	}
 
-	//将要认证的文件hash值及个人信息保存到区块链上，上链
-	_, err = blockchain.CHAIN.SaveData([]byte(hash))
+	//新增：将要认证的文件hash值及个人信息保存到区块链上，上链
+	//①、准备认证数据用户相关数据
+	us, err := models.QueryUserByPhone(phone)
+	if err != nil {
+		fmt.Println(err.Error())
+		u.Ctx.WriteString("抱歉，数据认证失败，请重试")
+		return
+	}
+
+	//②、准备认证文件的sha256Hash值
+	certhash, _ := util.SHA256HashReader(hashFile)
+	//③、实例化一个认证数据的结构体实例
+	certRecord := models.CertRecord{
+		CertHash:   []byte(certhash),
+		CertId:     []byte(hash),
+		CertAuthor: us.Name,
+		Phone:      us.Phone,
+		AuthorCard: us.Card,
+		FileName:   header.Filename,
+		FileSize:   header.Size,
+		CertTime:   t,
+	}
+
+	//④、序列化
+	certBytes, err := certRecord.SerializeRecord()
+	_, err = blockchain.CHAIN.SaveData(certBytes)
 	if err != nil {
 		u.Ctx.WriteString("认证数据上链失败，请重试")
 	}
+
+	//⑤
 
 	//4、从数据库中读取phone用户认证数据记录
 	records, err := models.QueryRecordByPhone(phone)

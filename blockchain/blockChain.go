@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"DataCertProject/models"
 	"errors"
 	"fmt"
 	"github.com/bolt-master"
@@ -156,6 +157,48 @@ func NewBlockChain() BlockChain {
 	CHAIN = bl
 
 	return bl
+}
+
+/*
+ *根据用户传入的保全号查询区块的信息，并返回
+ */
+
+func (bc BlockChain) QueryBlockByCertId(cert_id []byte) (*Block, error) {
+	var block *Block
+	db := bc.BoltDb
+	var err error
+	db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(BUCKET_NAME))
+		if bucket == nil {
+			err = errors.New("查询区块数据遇到错误！")
+		}
+		//未遇到错误，则桶存在
+		eachHash := bucket.Get([]byte(LAST_KEY))
+		eachBig := new(big.Int)
+		zeroBig := big.NewInt(0)
+		var certRecord *models.CertRecord
+		for {
+			eachBlockBytes := bucket.Get(eachHash)
+			eachBlock, _ := DeSerialize(eachBlockBytes)
+			//如果数据存在，找得到,反序列化后对比
+			certRecord, _ = models.DeSerializeRecord(eachBlock.Data)
+			fmt.Println(string(certRecord.CertId))
+			fmt.Println(string(cert_id))
+			if string(certRecord.CertId) == string(cert_id) {
+				block = eachBlock
+				break
+			}
+			//如果数据不存在，找不到数据
+			eachBig.SetBytes(eachBlock.PrevHash)
+			if eachBig.Cmp(zeroBig) == 0 {//一直到创世区块都未找到
+				break
+			}
+
+			eachHash = eachBlock.PrevHash
+		}
+		return nil
+	})
+	return block, err
 }
 
 //调用BlockChain的该SaveBlock方法，该方法可以将一个生成的新区块保存到chain.db

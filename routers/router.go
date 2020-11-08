@@ -22,5 +22,9 @@ func init() {
 	//认证数据列表页面，跳回新增取证
 	beego.Router("/upload_file.html",&controllers.UploadFileController{})
 	//查看认证证书页面cert_detail.html
-	//beego.Router("/cert_detail.html",&controllers.)
+	beego.Router("/cert_detail.html",&controllers.CertDetailController{})
+
+
+    beego.Router("/list_record.html",&controllers.AaController{})
+
 }
